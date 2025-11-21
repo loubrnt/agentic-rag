@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Analyse | {{ product_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .prose h3 { color: #047857; font-weight: 700; margin-top: 1rem; }
+        .prose strong { color: #1f2937; }
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen py-10 px-4 font-sans">
+
+    <div id="loader-alt" class="fixed inset-0 bg-white/90 z-50 hidden flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
+    </div>
+
+    <div class="max-w-3xl mx-auto">
+        <a href="/" class="text-gray-500 hover:text-emerald-600 mb-6 inline-flex items-center gap-2 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Nouvelle analyse
+        </a>
+
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden">
+            <div class="bg-slate-900 text-white p-8 flex items-center gap-6">
+                <img src="{{ url_for('static', filename='uploads/' + image) }}" class="h-24 w-24 object-contain bg-white rounded-lg shadow-md">
+                <div>
+                    <h1 class="text-3xl font-bold tracking-tight">{{ product_name }}</h1>
+                    <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 px-3 py-1 rounded-full text-xs font-medium mt-2 inline-block">Analyse Complète</span>
+                </div>
+            </div>
+
+            <div class="p-8">
+                {% if analysis and not alternatives %}
+                    <div id="analysis-content" class="prose max-w-none text-slate-600 mb-10"></div>
+                    <script>document.getElementById('analysis-content').innerHTML = marked.parse(`{{ analysis|safe }}`);</script>
+
+                    {% if sources %}
+                    <div class="mb-10">
+                        <h3 class="text-slate-800 font-bold mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            Sources de données (RAG Context)
+                        </h3>
+                        <div class="grid gap-3">
+                            {% for source in sources %}
+                            <details class="group bg-slate-50 border border-slate-200 rounded-xl overflow-hidden transition-all duration-200 hover:border-blue-300 hover:shadow-md open:ring-2 open:ring-blue-500/20">
+                                <summary class="flex items-center justify-between p-4 cursor-pointer select-none">
+                                    <div class="flex items-center gap-3">
+                                        <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded">DOC {{ loop.index }}</span>
+                                        <span class="font-medium text-slate-700">{{ source.name }}</span>
+                                    </div>
+                                    <svg class="w-5 h-5 text-slate-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </summary>
+                                <div class="p-4 pt-0 bg-slate-50 border-t border-slate-100">
+                                    <div class="text-[10px] font-mono text-slate-500 bg-white p-3 rounded border border-slate-200 overflow-x-auto">
+                                        {{ source.details }}
+                                    </div>
+                                </div>
+                            </details>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 pt-8 border-t border-gray-100">
+                        <form action="/chat" method="get">
+                            <input type="hidden" name="product" value="{{ product_name }}">
+                            <button class="w-full py-4 px-6 rounded-xl font-bold text-slate-700 bg-white border-2 border-slate-200 hover:border-blue-500 hover:text-blue-600 transition flex items-center justify-center gap-2 group">
+                                <span class="bg-blue-100 p-1.5 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition">💬</span>
+                                Poser une question
+                            </button>
+                        </form>
+                        
+                        <form action="/alternatives" method="post" onsubmit="document.getElementById('loader-alt').classList.remove('hidden')">
+                            <input type="hidden" name="product_name" value="{{ product_name }}">
+                            <input type="hidden" name="image" value="{{ image }}">
+                            <button class="w-full py-4 px-6 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 transition shadow-lg shadow-emerald-200 hover:shadow-emerald-300 flex items-center justify-center gap-2">
+                                ✨ Voir les alternatives
+                            </button>
+                        </form>
+                    </div>
+                {% endif %}
+
+                {% if alternatives %}
+                    <h2 class="text-2xl font-bold text-emerald-800 mb-6 flex items-center gap-2">
+                        <span class="bg-emerald-100 p-2 rounded-lg">🌱</span> Alternatives Recommandées
+                    </h2>
+                    <div id="alt-content" class="prose max-w-none prose-emerald"></div>
+                    <script>document.getElementById('alt-content').innerHTML = marked.parse(`{{ alternatives|safe }}`);</script>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

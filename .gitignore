@@ -1,0 +1,5 @@
+chroma_db
+clean_food.parquet
+food.parquet
+explore.ipynb
+.env

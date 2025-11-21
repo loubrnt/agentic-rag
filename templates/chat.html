@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat | {{ product_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .prose p { margin-bottom: 0.5rem; }
+        .prose ul { list-style: disc; padding-left: 1rem; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .typing-dot { animation: bounce 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+    </style>
+</head>
+<body class="bg-slate-50 h-screen flex flex-col font-sans overflow-hidden">
+    
+    <div class="bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-xl">🤖</div>
+            <div>
+                <h1 class="font-bold text-slate-800 leading-tight">{{ product_name }}</h1>
+                <p class="text-xs text-emerald-600 font-medium">Assistant Nutritionnel</p>
+            </div>
+        </div>
+        <a href="/" class="text-sm font-medium text-slate-400 hover:text-slate-600 transition">Quitter</a>
+    </div>
+
+    <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50 scroll-smooth">
+        <div class="flex justify-start animate-fade-in">
+            <div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm text-slate-700 text-sm max-w-[85%] border border-slate-100">
+                Bonjour ! Je dispose des données nutritionnelles complètes pour <b>{{ product_name }}</b>. 
+                <br>Posez-moi n'importe quelle question sur ses ingrédients, calories ou impacts santé.
+            </div>
+        </div>
+        
+        <div id="loading-bubble" class="hidden flex justify-start">
+            <div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 flex items-center gap-1 h-10">
+                <div class="w-2 h-2 bg-slate-400 rounded-full typing-dot"></div>
+                <div class="w-2 h-2 bg-slate-400 rounded-full typing-dot"></div>
+                <div class="w-2 h-2 bg-slate-400 rounded-full typing-dot"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-4 bg-white border-t">
+        <form id="chat-form" class="max-w-4xl mx-auto relative flex items-end gap-2">
+            <div class="relative flex-1">
+                <input type="text" id="msg-input" 
+                    class="w-full bg-slate-100 border-0 rounded-xl px-5 py-4 focus:ring-2 focus:ring-emerald-500 focus:bg-white transition outline-none text-slate-700" 
+                    placeholder="Est-ce que ce produit est trop sucré ?" 
+                    autocomplete="off" autofocus>
+            </div>
+            <button type="submit" 
+                class="bg-emerald-600 text-white p-4 rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                id="send-btn">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+            </button>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('chat-form');
+        const box = document.getElementById('chat-box');
+        const input = document.getElementById('msg-input');
+        const loader = document.getElementById('loading-bubble');
+        const btn = document.getElementById('send-btn');
+
+        const scrollToBottom = () => {
+            box.scrollTop = box.scrollHeight;
+        }
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            input.value = '';
+            input.disabled = true;
+            btn.disabled = true;
+
+            const userDiv = document.createElement('div');
+            userDiv.className = 'flex justify-end animate-fade-in-up';
+            userDiv.innerHTML = `<div class="bg-emerald-600 text-white p-4 rounded-2xl rounded-tr-none shadow-md text-sm max-w-[85%]">${msg}</div>`;
+            box.insertBefore(userDiv, loader);
+            
+            loader.classList.remove('hidden');
+            scrollToBottom();
+
+            try {
+                const res = await fetch('/chat?product={{ product_name }}', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message: msg})
+                });
+                const data = await res.json();
+                
+                const botDiv = document.createElement('div');
+                botDiv.className = 'flex justify-start animate-fade-in';
+                botDiv.innerHTML = `<div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm text-slate-700 text-sm max-w-[85%] border border-slate-100 prose prose-sm prose-emerald">${marked.parse(data.response)}</div>`;
+                
+                loader.classList.add('hidden');
+                box.insertBefore(botDiv, loader);
+            } catch (err) {
+                loader.classList.add('hidden');
+                alert("Erreur de connexion");
+            }
+
+            input.disabled = false;
+            btn.disabled = false;
+            input.focus();
+            scrollToBottom();
+        };
+    </script>
+</body>
+</html>
